@@ -8,7 +8,8 @@ const UserSchema = new mongoose.Schema({
   institutionName: { type: String },
   experience: { type: Number },
   serviceDomain: { type: String },
-  focusAreas: [{ type: String }]
+  focusAreas: [{ type: String }],
+  profileUrl: { type: String, default: null }
 }, {
   timestamps: true
 });

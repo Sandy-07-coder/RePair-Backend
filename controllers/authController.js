@@ -2,9 +2,8 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret_repair_token_123';
-
 export const register = async (req, res) => {
+  const JWT_SECRET = process.env.JWT_SECRET || 'secret_repair_token_123';
   try {
     const { email, password, name, phone, institutionName, experience, serviceDomain, focusAreas } = req.body;
 
@@ -44,6 +43,7 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
+  const JWT_SECRET = process.env.JWT_SECRET || 'secret_repair_token_123';
   try {
     const { email, password } = req.body;
 

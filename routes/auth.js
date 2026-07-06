@@ -1,6 +1,8 @@
 import express from 'express';
 import { register, login, getMe } from '../controllers/authController.js';
+import { uploadProfilePhoto } from '../controllers/uploadController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
@@ -25,5 +27,10 @@ router.post('/login', login);
 // @desc    Get current user's full profile
 // @access  Private
 router.get('/me', protect, getMe);
+
+// @route   POST /api/auth/upload-photo
+// @desc    Upload or replace the specialist's profile photo
+// @access  Private
+router.post('/upload-photo', protect, upload.single('photo'), uploadProfilePhoto);
 
 export default router;
