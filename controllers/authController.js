@@ -33,7 +33,7 @@ export const register = async (req, res) => {
 
     // Create JWT
     const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({ token, user: { id: user.id, email, name } });
   } catch (error) {
@@ -61,7 +61,7 @@ export const login = async (req, res) => {
 
     // Create JWT
     const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
