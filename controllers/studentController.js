@@ -7,18 +7,25 @@ import Student from '../models/Student.js';
 // ─────────────────────────────────────────────────────────────────────────────
 export const addStudent = async (req, res) => {
   try {
-    const { name, age, gender, diagnosis, notes, assessmentStatus } = req.body;
+    const { name, dob, gender, diagnosis, notes, assessmentStatus } = req.body;
 
     // Basic validation
-    if (!name || !age || !gender || !diagnosis) {
+    if (!name || !dob || !gender || !diagnosis) {
       return res.status(400).json({
-        message: 'name, age, gender, and diagnosis are required fields.',
+        message: 'name, dob, gender, and diagnosis are required fields.',
       });
+    }
+
+    // Parse dd/mm/yyyy → JS Date
+    const [day, month, year] = dob.split('/');
+    const parsedDob = new Date(`${year}-${month}-${day}`);
+    if (isNaN(parsedDob.getTime()) || parsedDob >= new Date()) {
+      return res.status(400).json({ message: 'dob must be a valid past date in dd/mm/yyyy format.' });
     }
 
     const student = await Student.create({
       name,
-      age,
+      dob: parsedDob,
       gender,
       diagnosis,
       notes: notes || '',

@@ -4,7 +4,7 @@ const StudentSchema = new mongoose.Schema(
   {
     // ── Personal Info ──────────────────────────────────────────────────
     name: { type: String, required: true, trim: true },
-    age: { type: Number, required: true, min: 1, max: 100 },
+    dob: { type: Date, required: true }, // stored as ISO date, displayed as dd/mm/yyyy
     gender: {
       type: String,
       required: true,
