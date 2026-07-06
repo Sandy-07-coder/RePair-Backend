@@ -3,6 +3,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
+import studentRoutes from './routes/students.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ mongoose.connect(MONGO_URI)
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/students', studentRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
