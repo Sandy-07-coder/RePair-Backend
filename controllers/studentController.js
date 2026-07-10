@@ -1,4 +1,5 @@
 import Student from '../models/Student.js';
+import bcrypt from 'bcryptjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   POST /api/students
@@ -7,7 +8,7 @@ import Student from '../models/Student.js';
 // ─────────────────────────────────────────────────────────────────────────────
 export const addStudent = async (req, res) => {
   try {
-    const { name, dob, gender, diagnosis, notes, assessmentStatus } = req.body;
+    const { name, dob, gender, diagnosis, notes, assessmentStatus, parentName, email } = req.body;
 
     // Basic validation
     if (!name || !dob || !gender || !diagnosis) {
@@ -23,19 +24,55 @@ export const addStudent = async (req, res) => {
       return res.status(400).json({ message: 'dob must be a valid past date in dd/mm/yyyy format.' });
     }
 
+    // ── Auto-generate username ───────────────────────────────────────────────
+    // Format: <student_firstname><parent_firstname>  e.g. "liam_sarah"
+    const studentFirst = name.trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+    const parentFirst  = (parentName || '').trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'parent';
+    const baseUsername = `${studentFirst}_${parentFirst}`;
+
+    // Ensure uniqueness — append random 2-digit suffix if taken
+    let username = baseUsername;
+    let attempt  = 0;
+    while (true) {
+      const conflict = await Student.findOne({ username });
+      if (!conflict) break;
+      const suffix = String(Math.floor(10 + Math.random() * 90)); // 10–99
+      username = `${baseUsername}${suffix}`;
+      if (++attempt > 20) {
+        // Extremely unlikely; generate a fully random fallback
+        username = `${baseUsername}${Date.now().toString().slice(-4)}`;
+        break;
+      }
+    }
+
+    // ── Auto-generate default password ───────────────────────────────────────────────
+    // Format: first 4 chars of student first name + birth year  e.g. "liam2019"
+    const birthYear    = String(parsedDob.getFullYear());
+    const namePart     = studentFirst.slice(0, 4).padEnd(4, '0'); // pad if name < 4 chars
+    const rawPassword  = `${namePart}${birthYear}`;
+    const salt         = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(rawPassword, salt);
+
     const student = await Student.create({
       name,
+      parentName: parentName || '',
+      email: email ? email.trim().toLowerCase() : '',
       dob: parsedDob,
       gender,
       diagnosis,
       notes: notes || '',
       assessmentStatus: assessmentStatus || 'pending',
+      username,
+      password: hashedPassword,
       specialist: req.user.id, // injected by `protect` middleware
     });
 
     res.status(201).json({
       message: 'Student added successfully.',
       student,
+      // Return the plain-text default password ONCE so the specialist can share it
+      defaultPassword: rawPassword,
+      username,
     });
   } catch (error) {
     console.error('addStudent error:', error);
