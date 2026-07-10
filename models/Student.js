@@ -4,6 +4,8 @@ const StudentSchema = new mongoose.Schema(
   {
     // ── Personal Info ──────────────────────────────────────────────────
     name: { type: String, required: true, trim: true },
+    parentName: { type: String, trim: true, default: '' }, // parent / guardian full name
+    email: { type: String, trim: true, lowercase: true, default: '' }, // parent / guardian email
     dob: { type: Date, required: true }, // stored as ISO date, displayed as dd/mm/yyyy
     gender: {
       type: String,
@@ -33,6 +35,19 @@ const StudentSchema = new mongoose.Schema(
     // ── Progress / Tracking (mirrors the old hard-coded shape) ─────────
     mood: { type: String, default: '' },
     taskCompletion: { type: String, default: '0%' }, // stored as "72%"
+
+    // ── Login Credentials (set by specialist, used by student via SpecialKid-UI) ─
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true, // allows multiple null values in the unique index
+      unique: true,
+    },
+    password: {
+      type: String, // bcrypt-hashed; null until specialist sets it
+      default: null,
+    },
 
     // ── Ownership ──────────────────────────────────────────────────────
     // The specialist (User) who created this student record

@@ -4,13 +4,15 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import studentRoutes from './routes/students.js';
+import studentAuthRoutes from './routes/studentAuth.js';
 
 const app = express();
 
 // Middleware
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const specialKidUrl = process.env.SPECIALKID_URL || 'http://localhost:3000';
 app.use(cors({
-  origin: frontendUrl,
+  origin: [frontendUrl, specialKidUrl],
   credentials: true,
 }));
 app.use(express.json());
@@ -33,6 +35,7 @@ mongoose.connect(MONGO_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/student-auth', studentAuthRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
