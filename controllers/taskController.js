@@ -60,7 +60,7 @@ export const getTasks = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   POST /api/students/:studentId/tasks
 // @desc    Assign a new task to a student
-// @body    { title, description, status? }
+// @body    multipart/form-data: { title, description?, status?, image? (file) }
 // @access  Private
 // ─────────────────────────────────────────────────────────────────────────────
 export const createTask = async (req, res) => {
@@ -73,9 +73,13 @@ export const createTask = async (req, res) => {
       return res.status(400).json({ message: 'title is required.' });
     }
 
+    // req.file is populated by uploadTaskImage multer middleware if an image was attached
+    const imageUrl = req.file ? req.file.path : '';
+
     const task = await Task.create({
       title: title.trim(),
       description: description?.trim() || '',
+      imageUrl,
       status: status || 'Pending',
       student: req.params.studentId,
       specialist: req.user.id,
@@ -84,6 +88,7 @@ export const createTask = async (req, res) => {
     res.status(201).json({ message: 'Task created successfully.', task });
   } catch (err) {
     if (err.status === 404) return res.status(404).json({ message: err.message });
+    if (err.status === 400) return res.status(400).json({ message: err.message });
     if (err.name === 'ValidationError') {
       return res.status(400).json({ message: err.message });
     }
@@ -94,8 +99,8 @@ export const createTask = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // @route   PATCH /api/students/:studentId/tasks/:taskId
-// @desc    Update a task (title, description, status)
-// @body    { title?, description?, status? }
+// @desc    Update a task (title, description, status, image)
+// @body    multipart/form-data: { title?, description?, status?, image? (file) }
 // @access  Private
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateTask = async (req, res) => {
@@ -108,6 +113,9 @@ export const updateTask = async (req, res) => {
     if (title !== undefined)       updates.title = title.trim();
     if (description !== undefined) updates.description = description.trim();
     if (status !== undefined)      updates.status = status;
+
+    // If a new image file was uploaded, replace the URL
+    if (req.file) updates.imageUrl = req.file.path;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ message: 'No valid fields provided to update.' });
@@ -124,6 +132,7 @@ export const updateTask = async (req, res) => {
     res.status(200).json({ message: 'Task updated.', task });
   } catch (err) {
     if (err.status === 404) return res.status(404).json({ message: err.message });
+    if (err.status === 400) return res.status(400).json({ message: err.message });
     if (err.name === 'CastError') return res.status(400).json({ message: 'Invalid ID.' });
     if (err.name === 'ValidationError') return res.status(400).json({ message: err.message });
     console.error('updateTask error:', err);

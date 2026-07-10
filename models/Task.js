@@ -6,6 +6,10 @@ const TaskSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: '' },
 
+    // ── Optional Image ─────────────────────────────────────────────────
+    // Cloudinary URL of an image attached to this task (e.g. reference picture)
+    imageUrl: { type: String, default: '' },
+
     // ── Status ─────────────────────────────────────────────────────────
     // 'Pending'     – created but not yet started
     // 'In Progress' – student/specialist has begun work
