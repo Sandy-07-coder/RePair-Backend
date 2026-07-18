@@ -1,5 +1,6 @@
 import Student from '../models/Student.js';
 import Task from '../models/Task.js';
+import MoodHistory from '../models/MoodHistory.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -157,5 +158,112 @@ export const completeTask = async (req, res) => {
   } catch (error) {
     console.error('completeTask error:', error);
     res.status(500).json({ message: 'Server error while completing task.' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route   POST /api/student-auth/mood
+// @desc    Log a mood selection for the authenticated student.
+//          Body: { mood: 'happy' | 'sad' | 'angry' | 'tired' }
+//          Also updates the quick-access `mood` field on the Student document.
+// @access  Private (student JWT required)
+// ─────────────────────────────────────────────────────────────────────────────
+export const logMood = async (req, res) => {
+  try {
+    const studentId = req.student.id;
+    const { mood } = req.body;
+
+    const allowed = ['happy', 'sad', 'angry', 'tired'];
+    if (!mood || !allowed.includes(mood.toLowerCase())) {
+      return res.status(400).json({
+        message: `Invalid mood. Must be one of: ${allowed.join(', ')}.`,
+      });
+    }
+
+    const normalizedMood = mood.toLowerCase();
+
+    // ISO date string for today (UTC) — used as the grouping key
+    const todayISO = new Date().toISOString().slice(0, 10); // "2026-07-18"
+
+    // Persist the mood entry
+    const entry = await MoodHistory.create({
+      student: studentId,
+      mood: normalizedMood,
+      date: todayISO,
+    });
+
+    // Keep the Student.mood field in sync for quick reads
+    await Student.findByIdAndUpdate(studentId, { mood: normalizedMood });
+
+    res.status(201).json({
+      message: 'Mood logged successfully.',
+      entry: {
+        id: entry._id,
+        mood: entry.mood,
+        date: entry.date,
+        createdAt: entry.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('logMood error:', error);
+    res.status(500).json({ message: 'Server error while logging mood.' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @route   GET /api/student-auth/mood-history
+// @desc    Return the last 7 days of mood history for the authenticated student.
+//          Response shape:
+//          {
+//            history: [
+//              { date: '2026-07-18', mood: 'happy', createdAt: '...' },
+//              ...
+//            ]
+//          }
+//          One entry per day (the most-recent mood of that day).
+// @access  Private (student JWT required)
+// ─────────────────────────────────────────────────────────────────────────────
+export const getMoodHistory = async (req, res) => {
+  try {
+    const studentId = req.student.id;
+
+    // Build the date range: last 7 days (today inclusive)
+    const today = new Date();
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    }); // descending: [today, yesterday, …, 6 days ago]
+
+    const earliest = dates[dates.length - 1];
+
+    // Fetch all entries in that window, newest first
+    const raw = await MoodHistory.find({
+      student: studentId,
+      date: { $gte: earliest },
+    })
+      .sort({ date: -1, createdAt: -1 })
+      .select('mood date createdAt')
+      .lean();
+
+    // Group: keep only the latest entry per date
+    const byDate = new Map();
+    for (const entry of raw) {
+      if (!byDate.has(entry.date)) {
+        byDate.set(entry.date, entry);
+      }
+    }
+
+    // Build the 7-slot array (null for days with no entry yet)
+    const history = dates.map((date) => ({
+      date,
+      mood: byDate.get(date)?.mood ?? null,
+      createdAt: byDate.get(date)?.createdAt ?? null,
+    }));
+
+    res.json({ history });
+  } catch (error) {
+    console.error('getMoodHistory error:', error);
+    res.status(500).json({ message: 'Server error while fetching mood history.' });
   }
 };
