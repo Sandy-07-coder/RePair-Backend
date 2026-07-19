@@ -1,5 +1,12 @@
 import express from 'express';
-import { studentLogin, getStudentMe, getStudentTasks, completeTask } from '../controllers/studentAuthController.js';
+import {
+  studentLogin,
+  getStudentMe,
+  getStudentTasks,
+  completeTask,
+  logMood,
+  getMoodHistory,
+} from '../controllers/studentAuthController.js';
 import { protectStudent } from '../middleware/studentAuthMiddleware.js';
 
 const router = express.Router();
@@ -12,5 +19,10 @@ router.get('/me',                               protectStudent, getStudentMe);
 router.get('/tasks',                            protectStudent, getStudentTasks);
 router.patch('/tasks/:taskId/complete',         protectStudent, completeTask);
 
+// Mood tracking
+router.post('/mood',                            protectStudent, logMood);
+router.get('/mood-history',                     protectStudent, getMoodHistory);
+
 export default router;
+
 
